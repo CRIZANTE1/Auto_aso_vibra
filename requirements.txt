@@ -6,3 +6,4 @@ google-auth-oauthlib
 gspread
 selenium
 python-dateutil
+Authlib
