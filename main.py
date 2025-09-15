@@ -10,6 +10,8 @@ from auth.auth_utils import (
     create_access_request
 )
 
+from datetime import datetime, timedelta
+
 def main():
     page_config()
 
@@ -32,12 +34,33 @@ def main():
     user_role = get_user_role()
 
     if user_role in ['admin', 'editor', 'viewer']:
-        # Usuário com permissão: exibe a página principal
-        page = initial_page()
+        # --- Barra Lateral com Controles ---
         with st.sidebar:
+            st.header("Controles")
+            # Seletores de data
+            data_inicio = st.date_input(
+                "Data de Início", 
+                value=datetime.now() - timedelta(days=365)
+            )
+            data_fim = st.date_input(
+                "Data de Fim", 
+                value=datetime.now()
+            )
+
+            # Botão de processamento
             if st.button("Processar ASOs", key="btn_processar_sidebar"):
-                page.processar_todos_cpfs()
+                if data_inicio > data_fim:
+                    st.error("A data de início não pode ser maior que a data de fim.")
+                else:
+                    # A chamada para processar agora acontece dentro deste bloco
+                    page = initial_page()
+                    page.processar_todos_cpfs(data_inicio, data_fim)
+        
+        # --- Exibição da Página Principal ---
+        # A página só é instanciada aqui para garantir que os dados mais recentes sejam carregados
+        page = initial_page()
         page.analisar_asos()
+
     else:
         # Usuário sem permissão: exibe a página de solicitação de acesso
         user_email = get_user_email()

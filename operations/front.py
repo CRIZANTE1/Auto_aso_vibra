@@ -32,12 +32,16 @@ class initial_page:
             st.error(f"Erro ao carregar dados da planilha: {e}")
             return {}
 
-    def processar_todos_cpfs(self):
+    def processar_todos_cpfs(self, data_inicio, data_fim):
         # O botão foi movido para a sidebar no main.py, esta função é chamada por ele
         try:
             with st.spinner("Buscando dados... Isso pode levar alguns minutos."):
-                # Passa o ID da planilha para o scraper
-                scraper = RhHealthScraper(spreadsheet_id=self.spreadsheet_id)
+                # Passa o ID da planilha e as datas para o scraper
+                scraper = RhHealthScraper(
+                    spreadsheet_id=self.spreadsheet_id, 
+                    data_inicio=data_inicio, 
+                    data_fim=data_fim
+                )
                 scraper.run()
             st.success("Dados processados e atualizados com sucesso na planilha!")
             # Limpa o cache para garantir que os novos dados sejam lidos

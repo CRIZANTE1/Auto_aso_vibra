@@ -21,7 +21,7 @@ logging.basicConfig(filename='scraper.log', level=logging.INFO,
 
 class RhHealthScraper:
 
-    def __init__(self, spreadsheet_id: str):
+    def __init__(self, spreadsheet_id: str, data_inicio: datetime, data_fim: datetime):
         try:
             self.USERNAME = st.secrets.rhhealth.USERNAME
             self.PASSWORD = st.secrets.rhhealth.PASSWORD
@@ -31,8 +31,8 @@ class RhHealthScraper:
             st.stop()
 
         self.driver = self.setup_driver()
-        self.data_inicio = (datetime.now() - relativedelta(years=1)).strftime('%d/%m/%Y')
-        self.data_fim = datetime.now().strftime('%d/%m/%Y')
+        self.data_inicio = data_inicio.strftime('%d/%m/%Y')
+        self.data_fim = data_fim.strftime('%d/%m/%Y')
         if not spreadsheet_id:
             raise ValueError("O ID da planilha é necessário para o scraper.")
         self.sheet_ops = SheetOperations(spreadsheet_id)
