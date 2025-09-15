@@ -34,6 +34,9 @@ def main():
     user_role = get_user_role()
 
     if user_role in ['admin', 'editor', 'viewer']:
+        # Instancia a página principal uma única vez
+        page = initial_page()
+
         # --- Barra Lateral com Controles ---
         with st.sidebar:
             st.header("Controles")
@@ -47,18 +50,21 @@ def main():
                 value=datetime.now()
             )
 
-            # Botão de processamento
-            if st.button("Processar ASOs", key="btn_processar_sidebar"):
-                if data_inicio > data_fim:
-                    st.error("A data de início não pode ser maior que a data de fim.")
-                else:
-                    # A chamada para processar agora acontece dentro deste bloco
-                    page = initial_page()
-                    page.processar_todos_cpfs(data_inicio, data_fim)
-        
+            # Botão de processamento visível apenas para admin e editor
+            if user_role in ['admin', 'editor']:
+                if st.button("Processar ASOs", key="btn_processar_sidebar", type="primary"):
+                    if data_inicio > data_fim:
+                        st.error("A data de início não pode ser maior que a data de fim.")
+                    else:
+                        # A chamada para processar usa a instância 'page' já criada.
+                        # A própria função irá forçar o recarregamento da página.
+                        page.processar_todos_cpfs(data_inicio, data_fim)
+            else:
+                st.info("Você tem permissão de visualização. Para processar novos dados, contate um administrador.")
+
         # --- Exibição da Página Principal ---
-        # A página só é instanciada aqui para garantir que os dados mais recentes sejam carregados
-        page = initial_page()
+        # A análise é sempre exibida com os dados mais recentes da planilha.
+        # Após o processamento, a página é recarregada e esta função é executada novamente.
         page.analisar_asos()
 
     else:
@@ -72,6 +78,10 @@ def main():
         
         if st.button("Solicitar Acesso Agora"):
             create_access_request(user_email, user_name)
+
+if __name__ == "__main__":
+    main()
+--- END OF FILE main.py ---
 
 if __name__ == "__main__":
     main()
