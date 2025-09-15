@@ -3,7 +3,7 @@ import json
 import streamlit as st
 
 # ID da sua Planilha Google principal
-SPREADSHEET_ID = "" # Substitua pelo ID real da sua planilha
+SPREADSHEET_ID = "1_5wySydNn-nlRPZrZvc42o1LbAnrGGd-zWDYFhhRT3c" # Substitua pelo ID real da sua planilha
 
 # Nomes das abas
 ADMIN_SHEET_NAME = "adm"
