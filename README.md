@@ -75,21 +75,29 @@ google_client_secret = "SEU_CLIENT_SECRET_DO_GOOGLE"
 google_discovery_url = "https://accounts.google.com"
 ```
 
-### 5. Configuração das Planilhas Google
+**Credenciais do Portal RH Health:**
 
-1.  **Planilha Matriz:**
-    - Crie uma planilha para ser a "Matriz" do sistema.
-    - Adicione o ID desta planilha na variável `MATRIX_SHEETS_ID` no arquivo `gdrive/config.py`.
-    - Crie as seguintes abas nesta planilha:
-        - `adm`: Com as colunas `email`, `nome`, `role` (`admin`, `editor`, `viewer`), `unidade_operacional`.
-        - `unidades`: Com as colunas `nome_unidade`, `spreadsheet_id`, `folder_id`.
+Adicione as credenciais para o login automatizado no portal.
 
-2.  **Planilhas das Unidades:**
-    - Para cada unidade cadastrada na Planilha Matriz, crie uma planilha separada.
-    - O ID de cada uma deve ser informado na coluna `spreadsheet_id` da aba `unidades` na Planilha Matriz.
-    - Cada planilha de unidade deve conter as seguintes abas:
-        - `funcionarios`: Com as colunas `CPF` e `Nome`.
-        - `asos`: Esta aba será preenchida automaticamente pelo scraper. O cabeçalho esperado é: `CPF`, `Nome_Funcionario`, `Anexo_Icon`, `Pedido`, `Responsavel`, `local`, `Nome`, `Prestador`, `Tipo_Exame`, `Exame`, `Data_Emissão`, `Agendamento`, `Status`, `Data_da_Realização`.
+```toml
+[rhhealth]
+username = "SEU_USUARIO"
+password = "SUA_SENHA"
+url = "https://portal.rhhealth.com.br/portal/"
+```
+
+### 5. Configuração da Planilha Google
+
+O sistema utiliza uma única Planilha Google para armazenar todos os dados.
+
+1.  **Crie a Planilha:** Crie uma nova Planilha Google.
+2.  **Configure o ID:** Adicione o ID desta planilha na variável `SPREADSHEET_ID` no arquivo `gdrive/config.py`.
+3.  **Crie as Abas:** Crie as seguintes abas dentro da sua planilha:
+    -   `adm`: Para gerenciar as permissões de usuário. Colunas necessárias: `email`, `nome`, `role` (com os valores `admin`, `editor` ou `viewer`).
+    -   `funcionarios`: Para listar os funcionários que serão monitorados. Colunas necessárias: `CPF` e `Nome`.
+    -   `asos`: Onde o scraper salvará os dados coletados. Esta aba é gerenciada automaticamente.
+    -   `solicitacoes_acesso`: Onde as solicitações de novos usuários são registradas. Colunas esperadas: `email`, `nome`, `data_solicitacao`, `status`.
+    -   `log_auditoria` (Opcional): Para registrar logs de ações importantes.
 
 ## Como Usar
 

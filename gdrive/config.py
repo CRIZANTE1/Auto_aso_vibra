@@ -2,18 +2,15 @@ import os
 import json
 import streamlit as st
 
-MATRIX_SHEETS_ID = "" # Substitua pelo ID real da planilha matriz
+# ID da sua Planilha Google principal
+SPREADSHEET_ID = "" # Substitua pelo ID real da sua planilha
 
-
-
+# Nomes das abas
 ADMIN_SHEET_NAME = "adm"
-UNITS_SHEET_NAME = "unidades"
 AUDIT_LOG_SHEET_NAME = "log_auditoria"
 ACCESS_REQUESTS_SHEET_NAME = "solicitacoes_acesso"
 FUNCIONARIOS_SHEET_NAME = "funcionarios"
 ASOS_SHEET_NAME = "asos"
-
-# CRIAR ABAIXO DEMAIS ABAS NECESSÁRIAS
 
 def get_credentials_dict():
     """Retorna as credenciais do serviço do Google, seja do arquivo local ou do Streamlit Cloud."""

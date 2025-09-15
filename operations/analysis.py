@@ -12,17 +12,24 @@ import pandas as pd
 from operations.sheets import SheetOperations
 from gdrive.config import FUNCIONARIOS_SHEET_NAME, ASOS_SHEET_NAME
 
+import streamlit as st
+
 # Configure logging
 logging.basicConfig(filename='scraper.log', level=logging.INFO, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 class RhHealthScraper:
-    USERNAME = 'CRISTIAN.CARLOS'
-    PASSWORD = '188228'
-    URL = "https://portal.rhhealth.com.br/portal/"
 
     def __init__(self, spreadsheet_id: str):
+        try:
+            self.USERNAME = st.secrets.rhhealth.username
+            self.PASSWORD = st.secrets.rhhealth.password
+            self.URL = st.secrets.rhhealth.url
+        except (AttributeError, KeyError):
+            st.error("Credenciais do RH Health não encontradas nos segredos do Streamlit. Adicione a seção [rhhealth] em .streamlit/secrets.toml")
+            st.stop()
+
         self.driver = self.setup_driver()
         self.data_inicio = (datetime.now() - relativedelta(years=1)).strftime('%d/%m/%Y')
         self.data_fim = datetime.now().strftime('%d/%m/%Y')

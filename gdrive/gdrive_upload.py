@@ -4,10 +4,10 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 import streamlit as st
 import tempfile
-from gdrive.config import get_credentials_dict, MATRIX_SHEETS_ID
+from gdrive.config import get_credentials_dict, SPREADSHEET_ID
 
 class GoogleDriveUploader:
-    def __init__(self, is_matrix=False):
+    def __init__(self):
         self.SCOPES = [
             'https://www.googleapis.com/auth/drive',
             'https://www.googleapis.com/auth/spreadsheets'
@@ -17,15 +17,8 @@ class GoogleDriveUploader:
         self.sheets_service = None
         self.initialize_services()
         
-        # --- LÓGICA DE SELEÇÃO DE ID ---
-        if is_matrix:
-            # Se for uma operação na matriz, usa o ID fixo da matriz
-            self.spreadsheet_id = MATRIX_SHEETS_ID
-            self.folder_id = None # Ações na matriz não devem fazer upload de arquivos
-        else:
-            # Para operações normais, pega os IDs da sessão do usuário
-            self.spreadsheet_id = st.session_state.get('current_spreadsheet_id')
-            self.folder_id = st.session_state.get('current_folder_id')
+        # O ID da planilha agora é sempre o mesmo, lido da sessão.
+        self.spreadsheet_id = st.session_state.get('current_spreadsheet_id')
 
     def initialize_services(self):
         try:
