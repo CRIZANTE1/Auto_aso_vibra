@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 from gdrive.gdrive_upload import GoogleDriveUploader
@@ -108,5 +109,3 @@ def can_edit():
 
 def can_view():
     return get_user_role() in ['admin', 'editor', 'viewer']
-
-    st.cache_data.clear()
