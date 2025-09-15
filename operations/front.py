@@ -1,5 +1,3 @@
---- START OF FILE operations/front.py ---
-
 import streamlit as st
 import pandas as pd
 from datetime import datetime
@@ -101,4 +99,3 @@ class initial_page:
             use_container_width=True,
             hide_index=True
         )
---- END OF FILE operations/front.py ---
