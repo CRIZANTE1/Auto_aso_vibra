@@ -27,7 +27,7 @@ class initial_page:
     @st.cache_data(ttl=300) # Adiciona cache para evitar recargas desnecessárias
     def load_data(_self):
         """Carrega os dados da planilha. O cache é limpo após o processamento."""
-        try
+        try: # <-- O ':' FOI ADICIONADO AQUI
             # Passa o ID da planilha para a função de carregamento
             return load_asos_data(_self.spreadsheet_id)
         except Exception as e:
