@@ -1,6 +1,10 @@
 libpango-1.0-0
 libharfbuzz0b
 libpangoft2-1.0-0
+<<<<<<< HEAD
+=======
+
+>>>>>>> fb0ce1edfd1c2e1a36bbfc408bab2b77fa5360cb
 libx11-xcb1
 libxrandr2
 libxcomposite1
@@ -17,4 +21,8 @@ libatk1.0-0
 libatk-bridge2.0-0
 libgtk-3-0
 libdrm2
+<<<<<<< HEAD
 libgbm1
+=======
+libgbm1 
+>>>>>>> fb0ce1edfd1c2e1a36bbfc408bab2b77fa5360cb
