@@ -23,9 +23,9 @@ class RhHealthScraper:
 
     def __init__(self, spreadsheet_id: str):
         try:
-            self.USERNAME = st.secrets.rhhealth.username
-            self.PASSWORD = st.secrets.rhhealth.password
-            self.URL = st.secrets.rhhealth.url
+            self.USERNAME = st.secrets.rhhealth.USERNAME
+            self.PASSWORD = st.secrets.rhhealth.PASSWORD
+            self.URL = st.secrets.rhhealth.URL
         except (AttributeError, KeyError):
             st.error("Credenciais do RH Health não encontradas nos segredos do Streamlit. Adicione a seção [rhhealth] em .streamlit/secrets.toml")
             st.stop()
