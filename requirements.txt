@@ -1,0 +1,8 @@
+streamlit
+pandas
+pytz
+google-api-python-client
+google-auth-oauthlib
+gspread
+selenium
+python-dateutil
