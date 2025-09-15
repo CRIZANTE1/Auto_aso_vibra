@@ -2,8 +2,14 @@ import os
 import json
 import streamlit as st
 
+<<<<<<< HEAD
 # ID da sua Planilha Google principal
 SPREADSHEET_ID = "" # Substitua pelo ID real da sua planilha
+=======
+MATRIX_SHEETS_ID = "1_5wySydNn-nlRPZrZvc42o1LbAnrGGd-zWDYFhhRT3c" # Substitua pelo ID real da planilha matriz
+
+
+>>>>>>> dfe85c17f522aff1c77a611dd156eba38022599e
 
 # Nomes das abas
 ADMIN_SHEET_NAME = "adm"
