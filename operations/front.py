@@ -1,3 +1,5 @@
+--- START OF FILE operations/front.py ---
+
 import streamlit as st
 import pandas as pd
 from datetime import datetime
@@ -15,27 +17,31 @@ def page_config():
 
 class initial_page:
     def __init__(self):
-        # O ID da planilha agora é necessário na inicialização
+        # O ID da planilha é lido da sessão
         self.spreadsheet_id = st.session_state.get('current_spreadsheet_id')
         if not self.spreadsheet_id:
-            st.error("ID da Planilha não encontrado na sessão. Selecione uma unidade.")
+            st.error("ID da Planilha não encontrado na sessão.")
             st.stop()
             
         self.asos_data = self.load_data()
         self.data_referencia = datetime.now()
 
-    def load_data(self):
-        try:
+    @st.cache_data(ttl=300) # Adiciona cache para evitar recargas desnecessárias
+    def load_data(_self):
+        """Carrega os dados da planilha. O cache é limpo após o processamento."""
+        try
             # Passa o ID da planilha para a função de carregamento
-            return load_asos_data(self.spreadsheet_id)
+            return load_asos_data(_self.spreadsheet_id)
         except Exception as e:
             st.error(f"Erro ao carregar dados da planilha: {e}")
             return {}
 
     def processar_todos_cpfs(self, data_inicio, data_fim):
-        # O botão foi movido para a sidebar no main.py, esta função é chamada por ele
+        """
+        Inicia o processo de scraping com as datas fornecidas pela interface.
+        """
         try:
-            with st.spinner("Buscando dados... Isso pode levar alguns minutos."):
+            with st.spinner("Buscando dados no portal RH Health... Isso pode levar alguns minutos."):
                 # Passa o ID da planilha e as datas para o scraper
                 scraper = RhHealthScraper(
                     spreadsheet_id=self.spreadsheet_id, 
@@ -44,7 +50,7 @@ class initial_page:
                 )
                 scraper.run()
             st.success("Dados processados e atualizados com sucesso na planilha!")
-            # Limpa o cache para garantir que os novos dados sejam lidos
+            # Limpa o cache para garantir que os novos dados sejam lidos da planilha
             st.cache_data.clear()
             st.rerun()  # Força o recarregamento da página para exibir os novos dados
         except Exception as e:
@@ -54,34 +60,45 @@ class initial_page:
         st.header("🗓️ Análise de Vencimento de ASOs")
 
         if not self.asos_data:
-            st.warning("Nenhum dado de ASO para analisar. Processe os dados primeiro.")
+            st.warning("Nenhum dado de ASO para analisar. Utilize os controles na barra lateral para processar os dados.")
             return
 
-        # Obter os ASOs mais recentes
+        # Obter os ASOs mais recentes a partir dos dados carregados
         latest_asos = get_latest_asos(self.asos_data)
 
-        # Verificar vencimentos
+        # Verificar vencimentos com base na data atual
         vencidos_monitoramento, vencidos_periodicos = check_asos_expiration(latest_asos, self.data_referencia)
 
-        # Exibir resultados
-        self.exibir_vencidos("ASOs de Monitoramento Vencidos (6 meses)", vencidos_monitoramento)
-        self.exibir_vencidos("ASOs Periódicos Vencidos (1 ano)", vencidos_periodicos)
+        # Exibir os resultados em colunas
+        col1, col2 = st.columns(2)
+        with col1:
+            self.exibir_vencidos("ASOs de Monitoramento Vencidos (6 meses)", vencidos_monitoramento)
+        with col2:
+            self.exibir_vencidos("ASOs Periódicos Vencidos (1 ano)", vencidos_periodicos)
+
 
     def exibir_vencidos(self, titulo, lista_vencidos):
         st.subheader(titulo)
         if not lista_vencidos:
-            st.success("Nenhum ASO vencido encontrado.")
+            st.success(f"✔️ Nenhum ASO vencido encontrado para esta categoria.")
             return
 
-        # Preparar dados para o DataFrame
-        dados_vencidos = []
+        # Preparar dados para exibição no DataFrame
+        dados_para_exibir = []
         for aso in lista_vencidos:
-            dados_vencidos.append({
+            dados_para_exibir.append({
                 "Nome": aso.get("Nome", "N/A"),
                 "Tipo de Exame": aso.get("Tipo_Exame", "N/A"),
                 "Data de Realização": aso.get("Data_da_Realização", "N/A"),
                 "Prestador": aso.get("Prestador", "N/A"),
             })
-
-        df_vencidos = pd.DataFrame(dados_vencidos)
-        st.dataframe(df_vencidos, height=300, width=1000)
+        
+        df_vencidos = pd.DataFrame(dados_para_exibir)
+        
+        st.error(f"Total de vencidos: {len(df_vencidos)}")
+        st.dataframe(
+            df_vencidos, 
+            use_container_width=True,
+            hide_index=True
+        )
+--- END OF FILE operations/front.py ---
