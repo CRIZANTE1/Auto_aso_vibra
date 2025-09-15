@@ -1,4 +1,3 @@
-
 import logging
 import sys
 from datetime import datetime
@@ -55,14 +54,23 @@ class RhHealthScraper:
     def setup_driver(self):
         logging.info("Configurando o driver do Selenium (Headless Chrome)...")
         chrome_options = webdriver.ChromeOptions()
-        chrome_options.add_argument("--incognito")
+        
+        # --- MUDANÇAS CRUCIAIS AQUI ---
+        # Opções para estabilizar o Chrome em ambientes de servidor/docker/headless
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-gpu")
-        #chrome_options.add_argument("--headless")
         chrome_options.add_argument("--window-size=1920,1080")
+        # Simula um navegador comum para evitar detecção de bot
+        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36"
+        chrome_options.add_argument(f'user-agent={user_agent}')
+        # --- FIM DAS MUDANÇAS ---
+
         driver = webdriver.Chrome(options=chrome_options)
         driver.set_page_load_timeout(30)
         driver.implicitly_wait(15)
-        logging.info("Driver configurado.")
+        logging.info("Driver configurado com sucesso.")
         return driver
 
     def wait_for_element(self, xpath, timeout=20):
@@ -96,10 +104,7 @@ class RhHealthScraper:
             password_field.send_keys(self.PASSWORD)
             logging.info("Senha inserida.")
 
-            # --- CORREÇÃO IMPORTANTE AQUI ---
-            # O botão agora é apenas "Entrar"
             login_button = self.wait_for_element('//button[contains(text(), "Entrar")]')
-            # --- FIM DA CORREÇÃO ---
             
             if not login_button:
                 logging.error("Botão de login não encontrado. O texto pode ter mudado novamente.")
@@ -288,4 +293,3 @@ class RhHealthScraper:
         finally:
             logging.info("Encerrando o driver do Selenium.")
             self.driver.quit()
-
