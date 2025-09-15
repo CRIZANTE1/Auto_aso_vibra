@@ -58,29 +58,18 @@ def get_permissions_df():
 def get_user_role():
     """Retorna o role do usuário logado. Retorna 'none' se não encontrado."""
     user_email = get_user_email()
-    st.write(f"DEBUG: Email do usuário logado: {user_email}")
-
     if not user_email:
         return 'none' # Nenhum usuário logado
 
     permissions_df = get_permissions_df()
-    st.write("DEBUG: DataFrame de Permissões lido da planilha:")
-    st.dataframe(permissions_df)
-
     if permissions_df.empty:
         return 'none' # Nenhuma permissão configurada
-
-    st.write("DEBUG: Comparando com o email do usuário...")
-    st.write(permissions_df['email'] == user_email)
 
     user_entry = permissions_df[permissions_df['email'] == user_email]
     
     if not user_entry.empty:
-        role = user_entry.iloc[0].get('role', 'none')
-        st.write(f"DEBUG: Role encontrado: {role}")
-        return role
+        return user_entry.iloc[0].get('role', 'none')
     
-    st.write("DEBUG: Nenhum role encontrado, retornando 'none'")
     return 'none' # Usuário não encontrado na lista de permissões
 
 def create_access_request(email: str, name: str):
