@@ -1,9 +1,7 @@
-import calendar
-import json
+
 import logging
 import sys
-from datetime import datetime, timedelta
-from dateutil.relativedelta import relativedelta
+from datetime import datetime
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.by import By
@@ -12,9 +10,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 import pandas as pd
 from operations.sheets import SheetOperations
 from gdrive.config import FUNCIONARIOS_SHEET_NAME, ASOS_SHEET_NAME
-
 import streamlit as st
 
+# Configuração de logging para exibir mensagens no terminal e em um arquivo
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - [SCRAPER] - %(message)s',
@@ -23,18 +21,15 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout)  # Envia logs para o terminal
     ]
 )
-# --- FIM DA MUDANÇA ---
-
 
 class RhHealthScraper:
-
     def __init__(self, spreadsheet_id: str, data_inicio: datetime, data_fim: datetime):
         try:
             self.USERNAME = st.secrets.rhhealth.USERNAME
             self.PASSWORD = st.secrets.rhhealth.PASSWORD
             self.URL = st.secrets.rhhealth.URL
         except (AttributeError, KeyError):
-            st.error("Credenciais do RH Health não encontradas nos segredos do Streamlit. Adicione a seção [rhhealth] em .streamlit/secrets.toml")
+            st.error("Credenciais do RH Health não encontradas. Verifique a seção [rhhealth] em .streamlit/secrets.toml")
             st.stop()
 
         self.driver = self.setup_driver()
@@ -49,8 +44,8 @@ class RhHealthScraper:
         logging.info("Carregando funcionários da planilha...")
         df = self.sheet_ops.get_df_from_worksheet(FUNCIONARIOS_SHEET_NAME)
         if df.empty or 'CPF' not in df.columns or 'Nome' not in df.columns:
-            logging.error("A aba 'funcionarios' está vazia ou não contém as colunas 'CPF' e 'Nome'. O scraper não pode continuar.")
-            st.warning("A aba 'funcionarios' da sua planilha está vazia ou não possui as colunas 'CPF' e 'Nome'. Adicione funcionários para processar.")
+            logging.error("A aba 'funcionarios' está vazia ou não contém as colunas 'CPF' e 'Nome'.")
+            st.warning("A aba 'funcionarios' da sua planilha está vazia ou não possui as colunas 'CPF' e 'Nome'.")
             return []
         
         logging.info(f"Encontrados {len(df)} funcionários para processar.")
@@ -63,11 +58,11 @@ class RhHealthScraper:
         chrome_options.add_argument("--incognito")
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--headless")
-        chrome_options.add_argument("--window-size=1920,1080") # Ajuda em alguns sites
+        chrome_options.add_argument("--window-size=1920,1080")
         driver = webdriver.Chrome(options=chrome_options)
         driver.set_page_load_timeout(30)
         driver.implicitly_wait(15)
-        logging.info("Driver configurado com sucesso.")
+        logging.info("Driver configurado.")
         return driver
 
     def wait_for_element(self, xpath, timeout=20):
@@ -75,20 +70,12 @@ class RhHealthScraper:
             return WebDriverWait(self.driver, timeout).until(
                 EC.visibility_of_element_located((By.XPATH, xpath))
             )
-        except TimeoutException as e:
+        except TimeoutException:
             logging.error(f"Elemento não encontrado (timeout): {xpath}.")
             return None
         except Exception as e:
             logging.error(f"Erro ao encontrar o elemento: {xpath}. Exceção: {e}")
             return None
-
-    def clear_and_set_value_with_js(self, element, value):
-        try:
-            self.driver.execute_script("arguments[0].setAttribute('autocomplete', 'off');", element)
-            self.driver.execute_script("arguments[0].value = '';", element)
-            element.send_keys(value)
-        except Exception as e:
-            logging.error(f"Erro ao limpar e definir valor: {e}")
 
     def login(self):
         try:
@@ -97,35 +84,40 @@ class RhHealthScraper:
 
             login_field = self.wait_for_element('//input[@name="data[Usuario][apelido]"]')
             if not login_field:
-                logging.error("Campo de login não encontrado. O site pode ter mudado.")
+                logging.error("Campo de login não encontrado.")
                 return False
-            self.clear_and_set_value_with_js(login_field, self.USERNAME)
+            login_field.send_keys(self.USERNAME)
             logging.info("Nome de usuário inserido.")
 
             password_field = self.wait_for_element('//input[@name="data[Usuario][senha]"]')
             if not password_field:
                 logging.error("Campo de senha não encontrado.")
                 return False
-            self.clear_and_set_value_with_js(password_field, self.PASSWORD)
+            password_field.send_keys(self.PASSWORD)
             logging.info("Senha inserida.")
 
-            login_button = self.wait_for_element('//button[contains(text(), "Entrar no Sistema")]')
+            # --- CORREÇÃO IMPORTANTE AQUI ---
+            # O botão agora é apenas "Entrar"
+            login_button = self.wait_for_element('//button[contains(text(), "Entrar")]')
+            # --- FIM DA CORREÇÃO ---
+            
             if not login_button:
-                logging.error("Botão de login não encontrado.")
+                logging.error("Botão de login não encontrado. O texto pode ter mudado novamente.")
+                self.driver.save_screenshot('debug_login_error.png')
+                logging.info("Screenshot 'debug_login_error.png' salvo para análise.")
                 return False
+                
             login_button.click()
             logging.info("Botão de login clicado. Aguardando redirecionamento...")
 
-            # Espera até que a URL mude ou um elemento da página principal apareça
             WebDriverWait(self.driver, 30).until(EC.url_contains("painel"))
             logging.info(f"Login bem-sucedido! URL atual: {self.driver.current_url}")
             return True
 
         except Exception as e:
             logging.error(f"Ocorreu uma exceção grave durante o login: {e}")
-            # Salvar um screenshot pode ajudar a diagnosticar
-            self.driver.save_screenshot('debug_login_error.png')
-            logging.info("Screenshot 'debug_login_error.png' salvo.")
+            self.driver.save_screenshot('debug_login_exception.png')
+            logging.info("Screenshot 'debug_login_exception.png' salvo.")
             return False
 
     def navigate_to_consulta(self, consulta_url):
@@ -142,41 +134,36 @@ class RhHealthScraper:
     def perform_search(self, cpf):
         try:
             cpf_field = self.wait_for_element('//*[@id="AgendamentoExameCpf"]')
-            if cpf_field is None: return False
+            if not cpf_field: return False
             cpf_field.clear()
             cpf_field.send_keys(cpf)
             logging.info(f"CPF inserido na busca: {cpf}")
 
             data_inicio_field = self.wait_for_element('//*[@id="AgendamentoExameDataInicio"]')
-            if data_inicio_field is None: return False
+            if not data_inicio_field: return False
             data_inicio_field.clear()
             data_inicio_field.send_keys(self.data_inicio)
-            logging.info(f"Data de início inserida: {self.data_inicio}")
 
             data_fim_field = self.wait_for_element('//*[@id="AgendamentoExameDataFim"]')
-            if data_fim_field is None: return False
+            if not data_fim_field: return False
             data_fim_field.clear()
             data_fim_field.send_keys(self.data_fim)
-            logging.info(f"Data de fim inserida: {self.data_fim}")
+            logging.info(f"Período de busca: {self.data_inicio} a {self.data_fim}")
 
             buscar_button = self.wait_for_element('//*[@id="AgendamentoExameIndexForm"]/input')
-            if buscar_button is None: return False
+            if not buscar_button: return False
             buscar_button.click()
             logging.info("Botão 'Buscar' clicado. Aguardando resultados...")
             
-            # Esperar um pouco para o carregamento iniciar e depois terminar
-            WebDriverWait(self.driver, 30).until(
-                EC.invisibility_of_element_located((By.ID, "loading-indicator"))
-            )
+            WebDriverWait(self.driver, 30).until(EC.invisibility_of_element_located((By.ID, "loading-indicator")))
 
-            # Verificar se a mensagem de "nenhum registro" apareceu
             try:
                 self.driver.find_element(By.XPATH, "//div[contains(text(), 'Nenhum registro encontrado')]")
                 logging.warning(f"Nenhum resultado encontrado para o CPF: {cpf} no período.")
-                return False # Indica que a busca foi feita, mas não houve resultados
+                return False
             except NoSuchElementException:
                 logging.info(f"Tabela de resultados encontrada para o CPF: {cpf}.")
-                return True # Indica que a busca teve resultados
+                return True
 
         except Exception as e:
             logging.error(f"Erro ao realizar a busca: {e}")
@@ -184,9 +171,9 @@ class RhHealthScraper:
 
     def process_results(self):
         try:
-            logging.info("Iniciando o processamento da tabela de resultados...")
+            logging.info("Processando a tabela de resultados...")
             tabela = self.wait_for_element("//table[contains(@class, 'table-striped')]")
-            if tabela is None: 
+            if not tabela: 
                 logging.error("Tabela de resultados não encontrada na página.")
                 return []
             
@@ -195,15 +182,13 @@ class RhHealthScraper:
                 logging.warning("Tabela encontrada, mas sem linhas de dados.")
                 return []
             
-            logging.info(f"Encontradas {len(linhas) - 1} linhas de dados na tabela.")
-
+            logging.info(f"Encontradas {len(linhas) - 1} linhas de dados.")
             resultados = []
-            for linha in linhas[1:]:  # Pula o cabeçalho
+            for linha in linhas[1:]:
                 colunas = linha.find_elements(By.TAG_NAME, "td")
                 if len(colunas) >= 12:
                     anexo_icon = "Sem anexo"
                     try:
-                        # Verifica se o ícone de anexo está presente
                         colunas[0].find_element(By.CSS_SELECTOR, '.icon-file')
                         anexo_icon = "Com anexo"
                     except NoSuchElementException:
@@ -230,7 +215,6 @@ class RhHealthScraper:
             return []
 
     def _save_results_to_sheet(self, todos_resultados):
-        """Salva os resultados consolidados na planilha."""
         if not todos_resultados:
             logging.warning("Nenhum resultado foi coletado para salvar na planilha.")
             return
@@ -240,38 +224,27 @@ class RhHealthScraper:
             data_to_save = []
             for cpf, data in todos_resultados.items():
                 for resultado in data.get('Resultados', []):
-                    row = {
-                        'CPF': cpf,
-                        'Nome_Funcionario': data['Nome'],
-                        **resultado
-                    }
+                    row = {'CPF': cpf, 'Nome_Funcionario': data['Nome'], **resultado}
                     data_to_save.append(row)
             
+            header = ['CPF', 'Nome_Funcionario', 'Anexo_Icon', 'Pedido', 'Responsavel', 'local', 'Nome', 'Prestador', 'Tipo_Exame', 'Exame', 'Data_Emissão', 'Agendamento', 'Status', 'Data_da_Realização']
+            worksheet = self.sheet_ops._get_worksheet(ASOS_SHEET_NAME)
+            
+            if not worksheet:
+                logging.error(f"Aba '{ASOS_SHEET_NAME}' não encontrada. Não foi possível salvar.")
+                st.error(f"Aba '{ASOS_SHEET_NAME}' não encontrada na planilha. Crie-a para salvar os resultados.")
+                return
+            
+            worksheet.clear()
+            logging.info(f"Aba '{ASOS_SHEET_NAME}' limpa.")
+            
             if not data_to_save:
-                logging.info("Nenhum registro de ASO encontrado para salvar na planilha.")
-                # Mesmo sem resultados, é bom limpar a planilha para refletir a nova busca
-                worksheet = self.sheet_ops._get_worksheet(ASOS_SHEET_NAME)
-                if worksheet:
-                    worksheet.clear()
-                    # Adiciona o cabeçalho de volta
-                    header = ['CPF', 'Nome_Funcionario', 'Anexo_Icon', 'Pedido', 'Responsavel', 'local', 'Nome', 'Prestador', 'Tipo_Exame', 'Exame', 'Data_Emissão', 'Agendamento', 'Status', 'Data_da_Realização']
-                    worksheet.update([header], value_input_option='USER_ENTERED')
+                logging.info("Nenhum registro de ASO encontrado para salvar. Apenas o cabeçalho será escrito.")
+                worksheet.update([header], value_input_option='USER_ENTERED')
                 return
 
             df = pd.DataFrame(data_to_save)
-            
-            header = ['CPF', 'Nome_Funcionario', 'Anexo_Icon', 'Pedido', 'Responsavel', 'local', 'Nome', 'Prestador', 'Tipo_Exame', 'Exame', 'Data_Emissão', 'Agendamento', 'Status', 'Data_da_Realização']
-            df = df.reindex(columns=header)
-
-            logging.info(f"Limpando a aba '{ASOS_SHEET_NAME}' antes de inserir novos dados...")
-            worksheet = self.sheet_ops._get_worksheet(ASOS_SHEET_NAME)
-            if not worksheet:
-                logging.error(f"Aba {ASOS_SHEET_NAME} não encontrada. Não foi possível salvar os resultados.")
-                st.error(f"Aba '{ASOS_SHEET_NAME}' não encontrada na planilha. Crie-a para salvar os resultados.")
-                return
-                
-            worksheet.clear()
-            
+            df = df.reindex(columns=header) # Garante a ordem correta
             data_list = [df.columns.values.tolist()] + df.values.tolist()
             
             logging.info(f"Enviando {len(df)} linhas para a planilha...")
@@ -290,10 +263,8 @@ class RhHealthScraper:
             return
             
         todos_resultados = {}
-        login_success = self.login()
-
         try:
-            if login_success:
+            if self.login():
                 for funcionario in funcionarios:
                     nome = funcionario["Nome"]
                     cpf = funcionario["CPF"]
@@ -301,11 +272,9 @@ class RhHealthScraper:
                     
                     if self.navigate_to_consulta("https://portal.rhhealth.com.br/portal/consultas_agendas"):
                         if self.perform_search(cpf):
-                            # Busca retornou resultados
                             resultados = self.process_results()
                             todos_resultados[cpf] = {"Nome": nome, "Resultados": resultados}
                         else:
-                            # Busca não retornou resultados
                             todos_resultados[cpf] = {"Nome": nome, "Resultados": []}
                     else:
                         logging.error(f"Falha ao navegar para a página de consulta para o funcionário {nome}.")
